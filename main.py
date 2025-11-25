@@ -7,6 +7,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 # Cargar el dataset
 df = pd.read_csv("winequality-red.csv")
@@ -22,7 +24,7 @@ X_scaled = scaler.fit_transform(X)
 # Configurar K-Fold
 kfold = KFold(n_splits=5, shuffle=True, random_state=42)
 
-# Evaluar KNN  con distintos valores de k
+# Evaluar KNN con distintos valores de k
 k_values = range(1, 21)
 accuracy_scores = []
 
@@ -31,23 +33,10 @@ for k in k_values:
     scores = cross_val_score(model, X_scaled, y, cv=kfold, scoring="accuracy")
     accuracy_scores.append(scores.mean())
 
-# Mostrar resultados
+# Vemos la mejor eficiciencia de k-neighbors
 best_k = k_values[np.argmax(accuracy_scores)]
 best_score = max(accuracy_scores)
 
-print(f" Mejor número de vecinos (k): {best_k}")
-print(f" Mejor precicion promedio: {best_score:.4f}")
-
-# Gráfica del rendimiento
-plt.figure(figsize=(8, 5))
-plt.plot(k_values, accuracy_scores, marker='o', linestyle='-', color='blue')
-plt.title("Rendimiento del modelo KNN(clasificacion) según número de vecinos (k)")
-plt.xlabel("Número de vecinos (k)")
-plt.ylabel("Precicion promedio (5-Fold CV)")
-plt.grid(True)
-plt.xticks(k_values)
-plt.savefig("knn_clasificacion.png", dpi=300, bbox_inches='tight')
-plt.show()
 
 knn = KNeighborsClassifier(n_neighbors=best_k)
 
@@ -58,6 +47,8 @@ X_imp_train, X_imp_test, y_imp_train, y_imp_test = train_test_split(
 
 # Entrenamos KNN para importancia
 knn.fit(X_imp_train, y_imp_train)
+
+y_pred = knn.predict(X_imp_test)
 
 # Permutation Importance
 result = permutation_importance(
@@ -78,7 +69,30 @@ plt.bar(range(len(features)), importances[indices])
 plt.xticks(range(len(features)), features[indices], rotation=45, ha='right')
 plt.title("Permutation Feature Importance (KNN)")
 plt.tight_layout()
-
-# Guardar imagen en PNG
 plt.savefig("knn_feature_importance.png", dpi=300)
+plt.show()
+
+#calculamos la matriz de confusion para ver claramente la precicion del modelo
+cm = confusion_matrix(y_imp_test, y_pred)
+
+plt.figure(figsize=(6,4))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.title("Matriz de Confusión")
+plt.xlabel("Predicción")
+plt.ylabel("Real")
+plt.savefig("matriz_confusion.png", dpi=300)
+plt.show()
+
+print(f" Mejor número de vecinos (k): {best_k}")
+print(f" Mejor precicion promedio: {best_score:.4f}")
+
+# Gráfica del rendimiento
+plt.figure(figsize=(8, 5))
+plt.plot(k_values, accuracy_scores, marker='o', linestyle='-', color='blue')
+plt.title("Rendimiento del modelo KNN(clasificacion) según número de vecinos (k)")
+plt.xlabel("Número de vecinos (k)")
+plt.ylabel("Precicion promedio (5-Fold CV)")
+plt.grid(True)
+plt.xticks(k_values)
+plt.savefig("knn_clasificacion.png", dpi=300, bbox_inches='tight')
 plt.show()
