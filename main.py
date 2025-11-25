@@ -4,7 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold, cross_val_score
 from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.model_selection import train_test_split
 
 # Cargar el dataset
 df = pd.read_csv("winequality-red.csv")
@@ -44,6 +46,39 @@ plt.xlabel("Número de vecinos (k)")
 plt.ylabel("Precicion promedio (5-Fold CV)")
 plt.grid(True)
 plt.xticks(k_values)
+plt.savefig("knn_clasificacion.png", dpi=300, bbox_inches='tight')
 plt.show()
 
+knn = KNeighborsClassifier(n_neighbors=best_k)
 
+# Split solo para importancia
+X_imp_train, X_imp_test, y_imp_train, y_imp_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Entrenamos KNN para importancia
+knn.fit(X_imp_train, y_imp_train)
+
+# Permutation Importance
+result = permutation_importance(
+    knn, X_imp_test, y_imp_test,
+    n_repeats=10,
+    random_state=42
+)
+
+importances = result.importances_mean
+std = result.importances_std
+features = X.columns
+
+# Ordenar de mayor a menor
+indices = importances.argsort()[::-1]
+
+plt.figure(figsize=(10, 6))
+plt.bar(range(len(features)), importances[indices])
+plt.xticks(range(len(features)), features[indices], rotation=45, ha='right')
+plt.title("Permutation Feature Importance (KNN)")
+plt.tight_layout()
+
+# Guardar imagen en PNG
+plt.savefig("knn_feature_importance.png", dpi=300)
+plt.show()
